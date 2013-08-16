@@ -10,33 +10,26 @@ using namespace std;
 const int elements = 2;
 const double G = 6.67E-11;
 const double h = 0.1;
-const double dt = 1000.0;
+const double dt = 1000;
 const double tmax = 30E6;
+
+struct vect
+{
+  public:
+  double x,y,z;
+};
 
  class pState
 {
         public:
-        double x,y;
-	double x1,x2,x3,x4;
-	double y1,y2,y3,y4;
-        double vx,vy;
-	double vx1,vx2,vx3,vx4;
-	double vy1,vy2,vy3,vy4;
-        double ax,ay,a;
-	double ax1,ax2,ax3,ax4;
-	double ay1,ay2,ay3,ay4;
-	double a1,a2,a3,a4;
+        vect r;
+        vect v;
+        vect a;
+        vect a1,a2,a3,a4;
+        vect r1,r2,r3,r4;
+        vect v1,v2,v3,v4;
+        vect F;
         double m;
-/*
-	pState()
-	{
-        x = rand() % 150000000;
-        y = rand() % 150000000;
-        vx = rand() % 15;
-        vy = rand() % 15;
-	m = rand() % 700000000000000000000000;
-	}
-*/
 };
 
 double sqr(float a)
@@ -51,7 +44,7 @@ double cube(float a)
 
 double dist(pState A, pState B)
 {
-    return sqrt(sqr(B.x - A.x) + sqr(B.y - A.y));
+    return sqrt(sqr(B.r.x - A.r.x) + sqr(B.r.y - A.r.y));
 }
 
 double FGrav(pState A, pState B)
@@ -72,16 +65,16 @@ int main()
 	particle[i] = pState();
     }
 
-	particle[0].x = 0;
-	particle[0].y = 0;
-	particle[0].vx = 0;
-	particle[0].vy = 0;
+	particle[0].r.x = 0;
+	particle[0].r.y = 0;
+	particle[0].v.x = 0;
+	particle[0].v.y = 0;
 	particle[0].m = 1.9E30;
 
-	particle[1].x = 150E9;
-	particle[1].y = 0;
-	particle[1].vx = 0;
-	particle[1].vy = 30E3;
+	particle[1].r.x = 150E9;
+	particle[1].r.y = 0;
+	particle[1].v.x = 0;
+	particle[1].v.y = 30E3;
 	particle[1].m = 8E24;
 
 
@@ -97,7 +90,7 @@ int main()
 			perc=0;
 		}
 		perc += dt;
-		//Determining acceleration
+
 	    for(int i = 0; i < elements; i++)
 	    {
 	        for(int j = 0; j < elements; j++)
@@ -107,43 +100,61 @@ int main()
 			continue;
 			}
 	//k1
-		         particle[j].a1 = FGrav(particle[j], particle[i]) / particle[j].m;
-		   	 particle[j].ax1 = particle[j].a * (particle[j].x - particle[i].x);
-		   	 particle[j].ay1 = particle[j].a * (particle[j].y - particle[i].y);
+            particle[j].a1.x = -G * particle[i].m * (particle[i].r.x - particle[j].r.x) / cube(dist(particle[i], particle[j]));
+            particle[j].a1.y = -G * particle[i].m * (particle[i].r.y - particle[j].r.y) / cube(dist(particle[i], particle[j]));
+            particle[j].r1 = particle[j].r;
+            particle[j].v1 = particle[j].v;
 
-			particle[j].vx1 = particle[j].vx;
-			particle[j].vy1 = particle[j].vy;
+	        }
 
-			particle[j].x1 = particle[j].x;
-			particle[j].y1 = particle[j].y;
-	cout << particle[j].x1 << endl;
+            for(int j = 0; j < elements; j++)
+	        {
+			if(j==i)
+			{
+			continue;
+			}
 	//k2
-			particle[j].vx2 = particle[j].vx1 + particle[j].ax1 * dt/2;
-			particle[j].vy2 = particle[j].vy1 + particle[j].ay1 * dt/2;
-			particle[j].x2 = particle[j].x1 + particle[j].vx2 * dt/2;
-			particle[j].y2 = particle[j].y1 + particle[j].vy2 * dt/2;
-			particle[j].ax2 = -G * particle[i].m * particle[j].x2 / cube(sqrt(sqr(particle[i].x1 - particle[j].x1) + sqr(particle[i].y1 - particle[j].y1)));
-			particle[j].ax2 = -G * particle[i].m * particle[j].x2 / cube(sqrt(sqr(particle[i].x1 - particle[j].x1) + sqr(particle[i].y1 - particle[j].y1)));
-	cout << particle[j].x2 << endl;
 
+            particle[j].v2.x = particle[j].v1.x + particle[j].a1.x * dt / 2;
+            particle[j].v2.y = particle[j].v1.y + particle[j].a1.y * dt / 2;
+            particle[j].r2.x = particle[j].r1.x + particle[j].v2.x * dt / 2;
+            particle[j].r2.y = particle[j].r1.y + particle[j].v2.y * dt / 2;
+            particle[j].a2.x = -G * particle[i].m * (particle[j].r2.x - particle[i].r2.x) / cube(dist(particle[i], particle[j]));
+            particle[j].a2.y = -G * particle[i].m * (particle[j].r2.y - particle[i].r2.y) / cube(dist(particle[i], particle[j]));
+	        }
+
+            for(int j = 0; j < elements; j++)
+	        {
+			if(j==i)
+			{
+			continue;
+			}
 	//k3
-			particle[j].vx3 = particle[j].vx1 + particle[i].ax2 * dt/2;
-			particle[j].vy3 = particle[j].vy1 + particle[i].ay2 * dt/2;
-			particle[j].x3 = particle[j].x1 + particle[j].vx3 * dt/2;
-			particle[j].y3 = particle[j].y1 + particle[j].vy3 * dt/2;
-			particle[j].ax3 = -G * particle[i].m * particle[j].x3 / cube(sqrt(sqr(particle[i].x2 - particle[j].x2) + sqr(particle[i].y2 - particle[j].y2)));
-			particle[j].ay3 = -G * particle[i].m * particle[j].y3 / cube(sqrt(sqr(particle[i].x2 - particle[j].x2) + sqr(particle[i].y2 - particle[j].y2)));
-	cout << particle[j].x3 << endl;
+
+            particle[j].v3.x = particle[j].v1.x + particle[j].a2.x * dt / 2;
+            particle[j].v3.y = particle[j].v1.y + particle[j].a2.y * dt / 2;
+            particle[j].r3.x = particle[j].r1.x + particle[j].v3.x * dt / 2;
+            particle[j].r3.y = particle[j].r1.y + particle[j].v3.y * dt / 2;
+            particle[j].a3.x = -G * particle[i].m * (particle[j].r3.x - particle[i].r3.x) / cube(sqrt(sqr(particle[j].r2.x) + sqr(particle[j].r2.y)));
+            particle[j].a3.x = -G * particle[i].m * (particle[j].r3.y - particle[i].r3.y) / cube(sqrt(sqr(particle[j].r2.x) + sqr(particle[j].r2.y)));
+	        }
+
+            for(int j = 0; j < elements; j++)
+	        {
+			if(j==i)
+			{
+			continue;
+			}
 	//k4
 
-			particle[j].vx4 = particle[j].vx1 + particle[j].ax3 * dt;
-			particle[j].vy4 = particle[j].vy1 + particle[j].ax3 * dt;
-			particle[j].x4 = particle[j].x1 + particle[j].vx4 * dt;
-			particle[j].y4 = particle[j].y1 + particle[j].vy4 * dt;
-			particle[j].ax4 = -G * particle[i].m * particle[j].x4 / cube(sqrt(sqr(particle[i].x3 - particle[j].x3) + sqr(particle[i].y3 - particle[j].y3)));
-			particle[j].ay4 = -G * particle[i].m * particle[j].y4 / cube(sqrt(sqr(particle[i].x3 - particle[j].x3) + sqr(particle[i].y3 - particle[j].y3)));
-	cout << particle[j].x4 << endl;
+            particle[j].v4.x = particle[j].v1.x + particle[j].a3.x * dt;
+            particle[j].v4.y = particle[j].v1.y + particle[j].a3.y * dt;
+            particle[j].r4.x = particle[j].r1.x + particle[j].v4.x * dt;
+            particle[j].r4.y = particle[j].r1.y + particle[j].v4.y * dt;
+            particle[j].a4.x = -G * particle[i].m * (particle[i].r4.x - particle[j].r4.x) / cube(sqrt(sqr(particle[i].r3.x - particle[j].r3.x) + sqr(particle[i].r3.y - particle[j].r3.x)));
+            particle[j].a4.x = -G * particle[i].m * (particle[i].r4.y - particle[j].r4.y) / cube(sqrt(sqr(particle[i].r3.x - particle[j].r3.y) + sqr(particle[i].r3.y - particle[j].r3.y)));
 	        }
+
 
 	    }
 
@@ -151,12 +162,12 @@ int main()
 		{
 	//	for(int j = 0; j < elements; j++)
 	//		{
-			particle[i].vx += dt/6 * (particle[i].ax1 + 2*particle[i].ax2 + 2*particle[i].ax3 + particle[i].ax4);
-			particle[i].vy += dt/6 * (particle[i].ay1 + 2*particle[i].ay2 + 2*particle[i].ay3 + particle[i].ay4);
-			particle[i].x += dt/6 * (particle[i].x1 + 2*particle[i].x2 + 2*particle[i].x3 + particle[i].x4);
-			particle[i].y += dt/6 * (particle[i].y1 + 2*particle[i].y2 + 2*particle[i].y3 + particle[i].y4);
+			particle[i].v.x += dt/6.0 * (particle[i].a1.x + 2*particle[i].a2.x + 2*particle[i].a3.x + particle[i].a4.x);
+			particle[i].v.y += dt/6.0 * (particle[i].a1.y + 2*particle[i].a2.y + 2*particle[i].a3.y + particle[i].a4.y);
+			particle[i].r.x += dt/6.0 * (particle[i].r1.x + 2*particle[i].r2.x + 2*particle[i].r3.x + particle[i].r4.x);
+			particle[i].r.y += dt/6.0 * (particle[i].r1.y + 2*particle[i].r2.y + 2*particle[i].r3.y + particle[i].r4.y);
 
-			simout << "#Telo#" << i << endl << particle[i].x << ", " << particle[i].y << endl;
+			simout << "#Telo#" << i << endl << particle[i].r.x << ", " << particle[i].r.y << endl;
 	//		}
 		}
 
